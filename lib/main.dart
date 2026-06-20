@@ -42,14 +42,79 @@ class _MyHomePageState extends State<MyHomePage> {
   Map<String, dynamic>? card2;
   Map<String, dynamic>? card3;
 
-  List<int>? cardDetails;
-  List<int>? cardDetails1;
-  List<int>? cardDetails2;
-
-  List<int>? cardDetails3;
-
   List<bool> _isTablePressed = [false, false, false, false];
   int isFourCard = 1; // Tracks pressed tables
+  final Set<int> _selectedNumbers = {};
+
+  Map<String, dynamic>? _getCard(int tableIndex) {
+    switch (tableIndex) {
+      case 0:
+        return card;
+      case 1:
+        return card1;
+      case 2:
+        return card2;
+      case 3:
+        return card3;
+      default:
+        return null;
+    }
+  }
+
+  bool _isNumberSelected(int number) =>
+      number == 0 || _selectedNumbers.contains(number);
+
+  void _toggleNumber(int number) {
+    if (number == 0) return;
+    setState(() {
+      if (_selectedNumbers.contains(number)) {
+        _selectedNumbers.remove(number);
+      } else {
+        _selectedNumbers.add(number);
+      }
+    });
+  }
+
+  void _clearSelectedNumbers() {
+    setState(() {
+      _selectedNumbers.clear();
+    });
+  }
+
+  bool _isRowComplete(Map<String, dynamic> cardData, int row) {
+    for (final key in ['b', 'i', 'n', 'g', 'o']) {
+      if (!_isNumberSelected(cardData[key][row] as int)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _isColComplete(Map<String, dynamic> cardData, int col) {
+    final key = ['b', 'i', 'n', 'g', 'o'][col];
+    for (int row = 0; row < 5; row++) {
+      if (!_isNumberSelected(cardData[key][row] as int)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _isCellInFullLine(Map<String, dynamic>? cardData, int row, int col) {
+    if (cardData == null) return false;
+    return _isRowComplete(cardData, row) || _isColComplete(cardData, col);
+  }
+
+  Color _cellColor(
+      Map<String, dynamic>? cardData, int row, int col, int number) {
+    if (_isCellInFullLine(cardData, row, col)) {
+      return const Color(0xFF4CAF50);
+    }
+    if (_isNumberSelected(number)) {
+      return const Color.fromARGB(255, 0, 162, 255);
+    }
+    return const Color.fromARGB(255, 203, 203, 203);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -312,10 +377,8 @@ class _MyHomePageState extends State<MyHomePage> {
             cardName = cardNumber.toString();
             if (tableIndex == 1) {
               card1 = currentCard;
-              cardDetails1 = null;
             } else {
               card = currentCard;
-              cardDetails = null;
             }
           });
           return;
@@ -324,8 +387,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         cardName = null;
         card = null;
-        cardDetails = null;
-        cardDetails1 = null;
+        card1 = null;
       });
     }
 
@@ -377,23 +439,18 @@ class _MyHomePageState extends State<MyHomePage> {
                                 : tableIndex == 2
                                     ? card2![key][row]
                                     : card3![key][row];
-                        final bool isSelected = tableIndex == 0
-                            ? (cardDetails?.contains(number) ?? false)
-                            : tableIndex == 1
-                                ? (cardDetails1?.contains(number) ?? false)
-                                : tableIndex == 2
-                                    ? (cardDetails2?.contains(number) ?? false)
-                                    : (cardDetails3?.contains(number) ?? false);
+                        final cardData = _getCard(tableIndex);
+                        final int cellNumber = number as int;
+                        final bool isSelected = _isNumberSelected(cellNumber);
                         return GestureDetector(
                           child: Container(
                             decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                color: isSelected
-                                    ? Color.fromARGB(255, 0, 162, 255)
-                                    : const Color.fromARGB(255, 203, 203, 203)),
+                                color: _cellColor(
+                                    cardData, row, col, cellNumber)),
                             child: Center(
                               child: Text(
-                                number == 0 ? '⭐️' : number.toString(),
+                                cellNumber == 0 ? '⭐️' : cellNumber.toString(),
                                 style: TextStyle(
                                   color:
                                       isSelected ? Colors.white : Colors.black,
@@ -404,29 +461,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                             ),
                           ),
-                          onTap: () {
-                            setState(() {
-                              if (tableIndex == 0) {
-                                if (cardDetails == null) {
-                                  cardDetails = [];
-                                }
-                                if (isSelected) {
-                                  cardDetails!.remove(number);
-                                } else {
-                                  cardDetails!.add(number);
-                                }
-                              } else {
-                                if (cardDetails1 == null) {
-                                  cardDetails1 = [];
-                                }
-                                if (isSelected) {
-                                  cardDetails1!.remove(number);
-                                } else {
-                                  cardDetails1!.add(number);
-                                }
-                              }
-                            });
-                          },
+                          onTap: () => _toggleNumber(cellNumber),
                         );
                         //  ElevatedButton(
                         //   onPressed: () {
@@ -482,11 +517,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
                           if (tableIndex == 0) {
                             card = null;
-                            cardDetails = null;
                           } else {
                             card1 = null;
-
-                            cardDetails1 = null;
                           }
                           _isTablePressed[tableIndex] = false;
                         });
@@ -494,20 +526,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: const Text('Back'),
                     ),
                     ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          // Clear the selected numbers and related variables
-                          if (tableIndex == 0) {
-                            cardDetails = null;
-                          } else if (tableIndex == 1) {
-                            cardDetails1 = null;
-                          } else if (tableIndex == 2) {
-                            cardDetails2 = null;
-                          } else if (tableIndex == 3) {
-                            cardDetails3 = null;
-                          }
-                        });
-                      },
+                      onPressed: _clearSelectedNumbers,
                       child: const Text('Clear'),
                     ),
                   ],
@@ -591,10 +610,8 @@ class _MyHomePageState extends State<MyHomePage> {
             cardName = cardNumber.toString();
             if (tableIndex == 1) {
               card1 = currentCard;
-              cardDetails1 = null;
             } else {
               card = currentCard;
-              cardDetails = null;
             }
           });
           return;
@@ -603,8 +620,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         cardName = null;
         card = null;
-        cardDetails = null;
-        cardDetails1 = null;
+        card1 = null;
       });
     }
 
@@ -660,26 +676,20 @@ class _MyHomePageState extends State<MyHomePage> {
                                     : tableIndex == 2
                                         ? card2![key][row]
                                         : card3![key][row];
-                            final bool isSelected = tableIndex == 0
-                                ? (cardDetails?.contains(number) ?? false)
-                                : tableIndex == 1
-                                    ? (cardDetails1?.contains(number) ?? false)
-                                    : tableIndex == 2
-                                        ? (cardDetails2?.contains(number) ??
-                                            false)
-                                        : (cardDetails3?.contains(number) ??
-                                            false);
+                            final cardData = _getCard(tableIndex);
+                            final int cellNumber = number as int;
+                            final bool isSelected = _isNumberSelected(cellNumber);
                             return GestureDetector(
                               child: Container(
                                 decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(10),
-                                    color: isSelected
-                                        ? Color.fromARGB(255, 0, 162, 255)
-                                        : const Color.fromARGB(
-                                            255, 203, 203, 203)),
+                                    color: _cellColor(
+                                        cardData, row, col, cellNumber)),
                                 child: Center(
                                   child: Text(
-                                    number == 0 ? '⭐️' : number.toString(),
+                                    cellNumber == 0
+                                        ? '⭐️'
+                                        : cellNumber.toString(),
                                     style: TextStyle(
                                       color: isSelected
                                           ? Colors.white
@@ -691,29 +701,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                 ),
                               ),
-                              onTap: () {
-                                setState(() {
-                                  if (tableIndex == 0) {
-                                    if (cardDetails == null) {
-                                      cardDetails = [];
-                                    }
-                                    if (isSelected) {
-                                      cardDetails!.remove(number);
-                                    } else {
-                                      cardDetails!.add(number);
-                                    }
-                                  } else {
-                                    if (cardDetails1 == null) {
-                                      cardDetails1 = [];
-                                    }
-                                    if (isSelected) {
-                                      cardDetails1!.remove(number);
-                                    } else {
-                                      cardDetails1!.add(number);
-                                    }
-                                  }
-                                });
-                              },
+                              onTap: () => _toggleNumber(cellNumber),
                             );
                             //  ElevatedButton(
                             //   onPressed: () {
@@ -780,11 +768,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
                                 if (tableIndex == 0) {
                                   card = null;
-                                  cardDetails = null;
                                 } else {
                                   card1 = null;
-
-                                  cardDetails1 = null;
                                 }
                                 _isTablePressed[tableIndex] = false;
                               });
@@ -792,20 +777,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: const Text('Back'),
                           ),
                           ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                // Clear the selected numbers and related variables
-                                if (tableIndex == 0) {
-                                  cardDetails = null;
-                                } else if (tableIndex == 1) {
-                                  cardDetails1 = null;
-                                } else if (tableIndex == 2) {
-                                  cardDetails2 = null;
-                                } else if (tableIndex == 3) {
-                                  cardDetails3 = null;
-                                }
-                              });
-                            },
+                            onPressed: _clearSelectedNumbers,
                             child: const Text('Clear'),
                           ),
                         ],
@@ -903,16 +875,12 @@ class _MyHomePageState extends State<MyHomePage> {
             cardName = cardNumber.toString();
             if (tableIndex == 1) {
               card1 = currentCard;
-              cardDetails1 = null;
             } else if (tableIndex == 2) {
               card2 = currentCard;
-              cardDetails2 = null;
             } else if (tableIndex == 3) {
               card3 = currentCard;
-              cardDetails3 = null;
             } else {
               card = currentCard;
-              cardDetails = null;
             }
           });
           return;
@@ -924,10 +892,6 @@ class _MyHomePageState extends State<MyHomePage> {
         card1 = null;
         card2 = null;
         card3 = null;
-        cardDetails = null;
-        cardDetails1 = null;
-        cardDetails2 = null;
-        cardDetails3 = null;
       });
     }
 
@@ -979,67 +943,22 @@ class _MyHomePageState extends State<MyHomePage> {
                                 : tableIndex == 2
                                     ? card2![key][row]
                                     : card3![key][row];
-                        final bool isSelected = tableIndex == 0
-                            ? (cardDetails?.contains(number) ?? false)
-                            : tableIndex == 1
-                                ? (cardDetails1?.contains(number) ?? false)
-                                : tableIndex == 2
-                                    ? (cardDetails2?.contains(number) ?? false)
-                                    : (cardDetails3?.contains(number) ?? false);
+                        final cardData = _getCard(tableIndex);
+                        final int cellNumber = number as int;
+                        final bool isSelected = _isNumberSelected(cellNumber);
                         return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              if (tableIndex == 0) {
-                                if (cardDetails == null) {
-                                  cardDetails = [];
-                                }
-                                if (isSelected) {
-                                  cardDetails!.remove(number);
-                                } else {
-                                  cardDetails!.add(number);
-                                }
-                              } else if (tableIndex == 1) {
-                                if (cardDetails1 == null) {
-                                  cardDetails1 = [];
-                                }
-                                if (isSelected) {
-                                  cardDetails1!.remove(number);
-                                } else {
-                                  cardDetails1!.add(number);
-                                }
-                              } else if (tableIndex == 2) {
-                                if (cardDetails2 == null) {
-                                  cardDetails2 = [];
-                                }
-                                if (isSelected) {
-                                  cardDetails2!.remove(number);
-                                } else {
-                                  cardDetails2!.add(number);
-                                }
-                              } else if (tableIndex == 3) {
-                                if (cardDetails3 == null) {
-                                  cardDetails3 = [];
-                                }
-                                if (isSelected) {
-                                  cardDetails3!.remove(number);
-                                } else {
-                                  cardDetails3!.add(number);
-                                }
-                              }
-                            });
-                          },
+                          onTap: () => _toggleNumber(cellNumber),
                           child: Container(
                             width: buttonSize,
                             height: buttonSize,
                             decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Color.fromARGB(255, 0, 162, 255)
-                                  : const Color.fromARGB(255, 203, 203, 203),
+                              color: _cellColor(
+                                  cardData, row, col, cellNumber),
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              number == 0 ? '⭐️' : number.toString(),
+                              cellNumber == 0 ? '⭐️' : cellNumber.toString(),
                               style: TextStyle(
                                 color: isSelected ? Colors.white : Colors.black,
                                 fontSize: buttonSize * 0.4,
@@ -1101,19 +1020,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
                               if (tableIndex == 0) {
                                 card = null;
-                                cardDetails = null;
                               } else if (tableIndex == 1) {
                                 card1 = null;
-
-                                cardDetails1 = null;
                               } else if (tableIndex == 2) {
                                 card2 = null;
-
-                                cardDetails2 = null;
                               } else if (tableIndex == 3) {
                                 card3 = null;
-
-                                cardDetails3 = null;
                               }
                               _isTablePressed[tableIndex] = false;
                             });
@@ -1125,20 +1037,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      // Clear the selected numbers and related variables
-                      if (tableIndex == 0) {
-                        cardDetails = null;
-                      } else if (tableIndex == 1) {
-                        cardDetails1 = null;
-                      } else if (tableIndex == 2) {
-                        cardDetails2 = null;
-                      } else if (tableIndex == 3) {
-                        cardDetails3 = null;
-                      }
-                    });
-                  },
+                  onPressed: _clearSelectedNumbers,
                   child: const Text('Clear'),
                 ),
               ] else ...[
