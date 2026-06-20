@@ -1,0 +1,108 @@
+  Widget _buildNumber(int tableIndex) {
+    double buttonSize = MediaQuery.of(context).size.shortestSide *
+        0.1; // Adjust button size dynamically
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(5.0),
+        child: Container(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_isTablePressed[tableIndex] && card != null) ...[
+                Container(
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: GridView.builder(
+                      physics: NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                        mainAxisSpacing: 10.0,
+                        crossAxisSpacing: 10.0,
+                        childAspectRatio:
+                            1, // Aspect ratio 1 for square buttons
+                      ),
+                      itemCount: 25,
+                      itemBuilder: (context, index) {
+                        final row = index ~/ 5;
+                        final col = index % 5;
+                        final key = ['b', 'i', 'n', 'g', 'o'][col];
+                        final number = card![key][row];
+                        final bool isSelected =
+                            cardDetails?.contains(number) ?? false;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              if (cardDetails == null) {
+                                cardDetails = [];
+                              }
+                              if (isSelected) {
+                                cardDetails!.remove(number);
+                              } else {
+                                cardDetails!.add(number);
+                              }
+                            });
+                          },
+                          child: Container(
+                            width: buttonSize,
+                            height: buttonSize,
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.green : Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              number.toString(),
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.black,
+                                fontSize: buttonSize *
+                                    0.4, // Adjust font size based on button size
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      cardName = null;
+                      card = null;
+                      cardDetails = null;
+                      _isTablePressed[tableIndex] = false;
+                    });
+                  },
+                  child: const Text('Back'),
+                ),
+              ] else ...[
+                TextField(
+                  controller: _numberController,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Enter a number',
+                    labelStyle: TextStyle(color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _isTablePressed[tableIndex] = true;
+                    });
+                    checkNumber();
+                  },
+                  child: const Text('Play'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
