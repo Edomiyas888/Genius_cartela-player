@@ -14,9 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Genius Bingo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const MyHomePage(),
     );
   }
@@ -106,7 +104,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Color _cellColor(
-      Map<String, dynamic>? cardData, int row, int col, int number) {
+    Map<String, dynamic>? cardData,
+    int row,
+    int col,
+    int number,
+  ) {
     if (_isCellInFullLine(cardData, row, col)) {
       return const Color(0xFF4CAF50);
     }
@@ -119,222 +121,223 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Color(0xFFF69C12),
-          title: Row(
-            children: [
-              Column(
-                children: [
-                  // Text(
-                  //   'ከእኛ ጋር ኤጅንት ሆነው መስራት ከ ፈለጉ',
-                  //   style: TextStyle(
-                  //       color: Color.fromARGB(255, 0, 0, 0), fontSize: 13),
-                  // ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 5,
+      appBar: AppBar(
+        backgroundColor: Color(0xFFF69C12),
+        title: Row(
+          children: [
+            Column(
+              children: [
+                // Text(
+                //   'ከእኛ ጋር ኤጅንት ሆነው መስራት ከ ፈለጉ',
+                //   style: TextStyle(
+                //       color: Color.fromARGB(255, 0, 0, 0), fontSize: 13),
+                // ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SizedBox(width: 5),
+                    Image.asset(
+                      'assets/images/bb.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
+                    Text(
+                      'ጥር 7 ጃምቦ ሀዉስ',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 58, 58, 57),
+                        fontSize: 17,
                       ),
-                      Image.asset(
-                        'assets/images/bb.png',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.contain,
-                      ),
-                      Text(
-                        'ጥር 7 ጃምቦ ሀዉስ',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color.fromARGB(255, 58, 58, 57),
-                            fontSize: 17),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 10.0),
-              )
-            ],
-          ),
-          actions: [
-            DropdownButton<String>(
-              value: isFourCard == 1
-                  ? '1 card'
-                  : isFourCard == 2
-                      ? '2 cards'
-                      : '4 cards',
-              onChanged: (String? newValue) {
-                // Handle dropdown item selection
-                if (newValue == '1 card') {
-                  setState(() {
-                    isFourCard = 1;
-                  });
-                } else if (newValue == '2 cards') {
-                  setState(() {
-                    isFourCard = 2;
-                  });
-                } else if (newValue == '4 cards') {
-                  setState(() {
-                    isFourCard = 3;
-                  });
-                }
-              },
-              items: <String>['1 card', '2 cards', '4 cards']
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+                    ),
+                  ],
+                ),
+              ],
             ),
+            Padding(padding: const EdgeInsets.only(top: 10.0)),
           ],
         ),
-        body: SingleChildScrollView(
-          physics: ClampingScrollPhysics(), // Prevent overflow error
-          child: Column(
-            children: [
-              isFourCard == 1
-                  ? Container(
-                      height: MediaQuery.of(context).size.height -
-                          MediaQuery.of(context).padding.top -
-                          kToolbarHeight -
-                          100,
-                      child: _buildTwoNumbers2(1, _numberController))
-                  : Container(
-                      height: MediaQuery.of(context).size.height -
-                          MediaQuery.of(context).padding.top -
-                          kToolbarHeight -
-                          0,
-                      child: isFourCard == 3
-                          ? Row(
+        actions: [
+          DropdownButton<String>(
+            value: isFourCard == 1
+                ? '1 card'
+                : isFourCard == 2
+                ? '2 cards'
+                : '4 cards',
+            onChanged: (String? newValue) {
+              // Handle dropdown item selection
+              if (newValue == '1 card') {
+                setState(() {
+                  isFourCard = 1;
+                });
+              } else if (newValue == '2 cards') {
+                setState(() {
+                  isFourCard = 2;
+                });
+              } else if (newValue == '4 cards') {
+                setState(() {
+                  isFourCard = 3;
+                });
+              }
+            },
+            items: <String>['1 card', '2 cards', '4 cards']
+                .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                })
+                .toList(),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        physics: ClampingScrollPhysics(), // Prevent overflow error
+        child: Column(
+          children: [
+            isFourCard == 1
+                ? Container(
+                    height:
+                        MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.top -
+                        kToolbarHeight -
+                        100,
+                    child: _buildTwoNumbers2(1, _numberController),
+                  )
+                : Container(
+                    height:
+                        MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.top -
+                        kToolbarHeight -
+                        0,
+                    child: isFourCard == 3
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Expanded(
+                                child: Flex(
+                                  direction: Axis.vertical,
+                                  children: [
+                                    _buildNumber(0, _numberController),
+                                    _buildNumber(1, _numberController1),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: Flex(
+                                  direction: Axis.vertical,
+                                  children: [
+                                    _buildNumber(2, _numberController4),
+                                    _buildNumber(3, _numberController5),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                Expanded(
-                                  child: Flex(
-                                    direction: Axis.vertical,
-                                    children: [
-                                      _buildNumber(0, _numberController),
-                                      _buildNumber(1, _numberController1),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Flex(
-                                    direction: Axis.vertical,
-                                    children: [
-                                      _buildNumber(2, _numberController4),
-                                      _buildNumber(3, _numberController5),
-                                    ],
-                                  ),
-                                ),
+                                _buildTwoNumbers(0, _numberController),
+                                _buildTwoNumbers(1, _numberController1),
                               ],
-                            )
-                          : Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _buildTwoNumbers(0, _numberController),
-                                  _buildTwoNumbers(1, _numberController1),
-                                ],
-                              ),
                             ),
-                    ),
-              // Footer Widget
-              Container(
-                // Adjust color as per your requirement
-
-                width: MediaQuery.of(context).size.width,
-                color: Color(0xFFF69C12),
-                padding: EdgeInsets.all(10.0),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Image.asset(
-                        'assets/images/bb.png',
-                        height: 60,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 8),
-                      // Container(
-                      //   width: MediaQuery.of(context).size.width,
-                      //   decoration: BoxDecoration(color: Color(0x006600)),
-                      //   child: Row(
-                      //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      //     children: [
-                      //       Text('Phone: 0973817087'),
-                      //     ],
-                      //   ),
-                      // ),
-                      Container(
-                        width: MediaQuery.of(context).size.width,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Text('ስለ መስተንግዶአችን አስተያየት ካሎት በዚህ ቁጥር ይደዉሉ '),
-                            Text(
-                              'ስራአስኪያጅ ምኑየለት ጤናዉ',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            )
-                          ],
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Text(
-                            '0911702828',
-                            style: TextStyle(
-                                color: Color.fromARGB(255, 250, 7, 7),
-                                fontSize: 15),
                           ),
-                          IconButton(
-                            icon: Icon(Icons.phone, size: 20), // Phone icon
-                            onPressed: _launchPhoneCall,
+                  ),
+            // Footer Widget
+            Container(
+              // Adjust color as per your requirement
+              width: MediaQuery.of(context).size.width,
+              color: Color(0xFFF69C12),
+              padding: EdgeInsets.all(10.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    Image.asset(
+                      'assets/images/bb.png',
+                      height: 60,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 8),
+                    // Container(
+                    //   width: MediaQuery.of(context).size.width,
+                    //   decoration: BoxDecoration(color: Color(0x006600)),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    //     children: [
+                    //       Text('Phone: 0973817087'),
+                    //     ],
+                    //   ),
+                    // ),
+                    Container(
+                      width: MediaQuery.of(context).size.width,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Text('ስለ መስተንግዶአችን አስተያየት ካሎት በዚህ ቁጥር ይደዉሉ '),
+                          Text(
+                            'ስራአስኪያጅ ምኑየለት ጤናዉ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
-                      // Row(
-                      //   mainAxisAlignment: MainAxisAlignment.center,
-                      //   children: [
-                      //     IconButton(
-                      //       icon: Icon(Icons.phone, size: 10), // Phone icon
-                      //       onPressed: _launchPhoneCall,
-                      //     ),
-                      //     SizedBox(width: 20),
-                      //     IconButton(
-                      //       icon: SizedBox(
-                      //         height: 20,
-                      //         child: Image.asset(
-                      //           'assets/images/bb.png',
-                      //           fit: BoxFit.fitHeight,
-                      //         ),
-                      //       ), // Replace with your Telegram logo image
-                      //       iconSize: 100, // Adjust icon size as needed
-                      //       onPressed: _launchTelegram,
-                      //     ),
-                      //     // Add spacing between icons
-                      //   ],
-                      // ),
-                      Divider(),
-                      const Text(
-                        'Developed by Habeshagaming.com @Copyright 2024',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(255, 23, 22, 22),
-                          fontSize: 14.0,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Text(
+                          '0911702828',
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 250, 7, 7),
+                            fontSize: 15,
+                          ),
                         ),
+                        IconButton(
+                          icon: Icon(Icons.phone, size: 20), // Phone icon
+                          onPressed: _launchPhoneCall,
+                        ),
+                      ],
+                    ),
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.center,
+                    //   children: [
+                    //     IconButton(
+                    //       icon: Icon(Icons.phone, size: 10), // Phone icon
+                    //       onPressed: _launchPhoneCall,
+                    //     ),
+                    //     SizedBox(width: 20),
+                    //     IconButton(
+                    //       icon: SizedBox(
+                    //         height: 20,
+                    //         child: Image.asset(
+                    //           'assets/images/bb.png',
+                    //           fit: BoxFit.fitHeight,
+                    //         ),
+                    //       ), // Replace with your Telegram logo image
+                    //       iconSize: 100, // Adjust icon size as needed
+                    //       onPressed: _launchTelegram,
+                    //     ),
+                    //     // Add spacing between icons
+                    //   ],
+                    // ),
+                    Divider(),
+                    const Text(
+                      'Developed by Habeshagaming.com @Copyright 2024',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 23, 22, 22),
+                        fontSize: 14.0,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ));
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _launchTelegram() async {
@@ -424,7 +427,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         crossAxisCount: 5,
                         mainAxisSpacing: 10.0,
                         crossAxisSpacing: 10.0,
-                        childAspectRatio: MediaQuery.of(context).size.width /
+                        childAspectRatio:
+                            MediaQuery.of(context).size.width /
                             250, // Adjust button size
                       ),
                       itemCount: 25,
@@ -435,25 +439,26 @@ class _MyHomePageState extends State<MyHomePage> {
                         final number = tableIndex == 0
                             ? card![key][row]
                             : tableIndex == 1
-                                ? card1![key][row]
-                                : tableIndex == 2
-                                    ? card2![key][row]
-                                    : card3![key][row];
+                            ? card1![key][row]
+                            : tableIndex == 2
+                            ? card2![key][row]
+                            : card3![key][row];
                         final cardData = _getCard(tableIndex);
                         final int cellNumber = number as int;
                         final bool isSelected = _isNumberSelected(cellNumber);
                         return GestureDetector(
                           child: Container(
                             decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: _cellColor(
-                                    cardData, row, col, cellNumber)),
+                              borderRadius: BorderRadius.circular(10),
+                              color: _cellColor(cardData, row, col, cellNumber),
+                            ),
                             child: Center(
                               child: Text(
                                 cellNumber == 0 ? '⭐️' : cellNumber.toString(),
                                 style: TextStyle(
-                                  color:
-                                      isSelected ? Colors.white : Colors.black,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black,
                                   fontSize: 17, // Adjust button font size
                                   fontWeight:
                                       FontWeight.bold, // Make the text bold
@@ -546,25 +551,25 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Container(
                     width: 100,
                     decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                Colors.black.withOpacity(0.2), // Shadow color
-                            blurRadius: 6, // Spread radius
-                            offset:
-                                Offset(0, 3), // Offset in x and y directions
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(17),
-                        color: Color.fromARGB(255, 255, 98, 0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2), // Shadow color
+                          blurRadius: 6, // Spread radius
+                          offset: Offset(0, 3), // Offset in x and y directions
+                        ),
+                      ],
+                      borderRadius: BorderRadius.circular(17),
+                      color: Color.fromARGB(255, 255, 98, 0),
+                    ),
                     child: Center(
-                        child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Play',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          'Play',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    )),
+                    ),
                   ),
                   onTap: () {
                     setState(() {
@@ -593,10 +598,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 35,
-      ),
+      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 35),
     );
   }
 
@@ -657,13 +659,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           shrinkWrap: true,
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 5,
-                            mainAxisSpacing: 10.0,
-                            crossAxisSpacing: 10.0,
-                            childAspectRatio:
-                                MediaQuery.of(context).size.width /
+                                crossAxisCount: 5,
+                                mainAxisSpacing: 10.0,
+                                crossAxisSpacing: 10.0,
+                                childAspectRatio:
+                                    MediaQuery.of(context).size.width /
                                     400, // Adjust button size
-                          ),
+                              ),
                           itemCount: 25,
                           itemBuilder: (context, index) {
                             final row = index ~/ 5;
@@ -672,19 +674,26 @@ class _MyHomePageState extends State<MyHomePage> {
                             final number = tableIndex == 0
                                 ? card![key][row]
                                 : tableIndex == 1
-                                    ? card1![key][row]
-                                    : tableIndex == 2
-                                        ? card2![key][row]
-                                        : card3![key][row];
+                                ? card1![key][row]
+                                : tableIndex == 2
+                                ? card2![key][row]
+                                : card3![key][row];
                             final cardData = _getCard(tableIndex);
                             final int cellNumber = number as int;
-                            final bool isSelected = _isNumberSelected(cellNumber);
+                            final bool isSelected = _isNumberSelected(
+                              cellNumber,
+                            );
                             return GestureDetector(
                               child: Container(
                                 decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    color: _cellColor(
-                                        cardData, row, col, cellNumber)),
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: _cellColor(
+                                    cardData,
+                                    row,
+                                    col,
+                                    cellNumber,
+                                  ),
+                                ),
                                 child: Center(
                                   child: Text(
                                     cellNumber == 0
@@ -757,8 +766,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               Text(
                                 x.text,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 18),
-                              )
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
                             ],
                           ),
                           ElevatedButton(
@@ -801,10 +812,12 @@ class _MyHomePageState extends State<MyHomePage> {
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              color: const Color.fromARGB(255, 0, 0, 0)),
+                            color: const Color.fromARGB(255, 0, 0, 0),
+                          ),
                           decoration: InputDecoration(
-                            labelStyle:
-                                TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                            labelStyle: TextStyle(
+                              color: Color.fromARGB(255, 0, 0, 0),
+                            ),
                             alignLabelWithHint:
                                 true, // Aligns label with the hint text
                             floatingLabelBehavior: FloatingLabelBehavior
@@ -819,25 +832,30 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Container(
                         width: 100,
                         decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black
-                                    .withOpacity(0.2), // Shadow color
-                                blurRadius: 6, // Spread radius
-                                offset: Offset(
-                                    0, 3), // Offset in x and y directions
-                              ),
-                            ],
-                            borderRadius: BorderRadius.circular(17),
-                            color: Color.fromARGB(255, 255, 98, 0)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(
+                                0.2,
+                              ), // Shadow color
+                              blurRadius: 6, // Spread radius
+                              offset: Offset(
+                                0,
+                                3,
+                              ), // Offset in x and y directions
+                            ),
+                          ],
+                          borderRadius: BorderRadius.circular(17),
+                          color: Color.fromARGB(255, 255, 98, 0),
+                        ),
                         child: Center(
-                            child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            'Play',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              'Play',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        )),
+                        ),
                       ),
                       onTap: () {
                         setState(() {
@@ -939,10 +957,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         final number = tableIndex == 0
                             ? card![key][row]
                             : tableIndex == 1
-                                ? card1![key][row]
-                                : tableIndex == 2
-                                    ? card2![key][row]
-                                    : card3![key][row];
+                            ? card1![key][row]
+                            : tableIndex == 2
+                            ? card2![key][row]
+                            : card3![key][row];
                         final cardData = _getCard(tableIndex);
                         final int cellNumber = number as int;
                         final bool isSelected = _isNumberSelected(cellNumber);
@@ -952,8 +970,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             width: buttonSize,
                             height: buttonSize,
                             decoration: BoxDecoration(
-                              color: _cellColor(
-                                  cardData, row, col, cellNumber),
+                              color: _cellColor(cardData, row, col, cellNumber),
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
@@ -1055,25 +1072,25 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Container(
                     width: 100,
                     decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                Colors.black.withOpacity(0.2), // Shadow color
-                            blurRadius: 6, // Spread radius
-                            offset:
-                                Offset(0, 3), // Offset in x and y directions
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(17),
-                        color: Color.fromARGB(255, 255, 98, 0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2), // Shadow color
+                          blurRadius: 6, // Spread radius
+                          offset: Offset(0, 3), // Offset in x and y directions
+                        ),
+                      ],
+                      borderRadius: BorderRadius.circular(17),
+                      color: Color.fromARGB(255, 255, 98, 0),
+                    ),
                     child: Center(
-                        child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Play',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          'Play',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    )),
+                    ),
                   ),
                   onTap: () {
                     setState(() {

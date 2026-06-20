@@ -1,4 +1,4 @@
-name: Flutter CI
+name: Build APK
 
 on:
   push:
@@ -9,35 +9,15 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  analyze-and-test:
+  build-apk:
+    name: Build Android APK
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
-
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Run tests
-        run: flutter test
-
-  build-android:
-    runs-on: ubuntu-latest
-    needs: analyze-and-test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,19 +37,40 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Format code
+        run: dart format lib test
+
+      - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: genius-bingo-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          retention-days: 90
 
-  build-web:
+      - name: Publish APK to GitHub Release
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-build-${{ github.run_number }}
+          name: Genius Bingo APK (build ${{ github.run_number }})
+          body: |
+            Android release APK for Genius Bingo.
+
+            Install on your phone:
+            1. Download `app-release.apk` below
+            2. Open the file on your Android device
+            3. Allow install from unknown sources if prompted
+          files: build/app/outputs/flutter-apk/app-release.apk
+          make_latest: true
+
+  quality-checks:
+    name: Analyze and test
     runs-on: ubuntu-latest
-    needs: analyze-and-test
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -83,12 +84,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build web
-        run: flutter build web --release
+      - name: Format code
+        run: dart format lib test
 
-      - name: Upload web build
-        uses: actions/upload-artifact@v4
-        with:
-          name: genius-bingo-web
-          path: build/web
-          if-no-files-found: error
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test

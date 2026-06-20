@@ -3,8 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:GeniusBingo/main.dart';
 
 void main() {
-  testWidgets('App loads with Genius Bingo branding',
-      (WidgetTester tester) async {
+  testWidgets('App loads with Genius Bingo branding', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const MyApp());
     await tester.pump();
 
