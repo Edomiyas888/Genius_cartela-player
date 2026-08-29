@@ -13,6 +13,18 @@ void main() {
 /// Column letters, in board order.
 const List<String> kColumns = ['b', 'i', 'n', 'g', 'o'];
 
+/// Gap between two card tiles, both across and down.
+const double _kTileSpacing = 8;
+
+/// Padding around the whole board.
+const double _kBoardPadding = 8;
+
+/// Heights of the header and footer strips of a card, as a multiple of one
+/// cell. They are fixed so a card's height is a pure function of its width and
+/// the board can be sized to fit the screen without measuring anything.
+const double _kHeaderRatio = 0.9;
+const double _kFooterRatio = 0.95;
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -50,8 +62,9 @@ class _MyHomePageState extends State<MyHomePage> {
   /// it up on every open card that happens to carry it.
   final Set<int> _selectedNumbers = <int>{};
 
-  /// How many cards the player is tracking right now (1 to [kMaxCards]).
-  int _cardCount = 1;
+  /// How many cards the player is tracking right now. Always even, and never
+  /// more than [kMaxCards].
+  int _cardCount = 2;
 
   @override
   void dispose() {
@@ -162,15 +175,11 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // The board is sized to the visible area, so the keyboard has to float
+      // over it rather than shrink it and squash the cards.
+      resizeToAvoidBottomInset: false,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            children: [_buildBoard(), _buildFooter()],
-          ),
-        ),
-      ),
+      body: SafeArea(child: _buildBoard()),
     );
   }
 
@@ -187,12 +196,12 @@ class _MyHomePageState extends State<MyHomePage> {
             fit: BoxFit.contain,
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   kAppName,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -200,9 +209,23 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: kBrandInk,
                   ),
                 ),
-                Text(
-                  kVenueName,
-                  style: TextStyle(fontSize: 11, color: kBrandInk),
+                GestureDetector(
+                  onTap: _launchPhoneCall,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.phone, size: 12, color: kBrandInk),
+                      SizedBox(width: 4),
+                      Text(
+                        kContactPhone,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: kBrandInk,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -229,11 +252,13 @@ class _MyHomePageState extends State<MyHomePage> {
               onChanged: (int? value) {
                 if (value != null) _setCardCount(value);
               },
-              items: List<DropdownMenuItem<int>>.generate(kMaxCards, (int i) {
-                final int count = i + 1;
+              // Cards are always played in even numbers.
+              items:
+                  List<DropdownMenuItem<int>>.generate(kMaxCards ~/ 2, (int i) {
+                final int count = (i + 1) * 2;
                 return DropdownMenuItem<int>(
                   value: count,
-                  child: Text(count == 1 ? '1 card' : '$count cards'),
+                  child: Text('$count cards'),
                 );
               }),
             ),
@@ -243,33 +268,93 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  /// How many cards fit side by side without squeezing the numbers illegibly.
-  int _columnCount(double width) {
-    if (_cardCount == 1) return 1;
-    final int fits = (width / 190).floor().clamp(1, 5);
-    return math.min(fits, _cardCount);
+  // ------------------------------------------------------------- board fit --
+
+  /// Inner padding of a card tile, which doubles as the gap between cells.
+  double _tileGap(double width) => (width * 0.025).clamp(3.0, 10.0);
+
+  /// Side of one numbered circle on a tile [width] wide.
+  double _cellFor(double width) {
+    final double gap = _tileGap(width);
+    return (width - gap * 6) / 5;
+  }
+
+  /// The height a card tile [width] wide needs. Kept in step with
+  /// [_buildOpenCard], which lays every strip out at exactly these sizes.
+  double _tileHeightFor(double width) {
+    final double gap = _tileGap(width);
+    final double cell = _cellFor(width);
+    return gap * 2 + // container padding
+        cell * _kHeaderRatio + // BINGO letters
+        gap +
+        cell * 5 + gap * 4 + // the 5x5 grid
+        gap +
+        cell * _kFooterRatio; // card number and Back
+  }
+
+  /// Widest tile whose height still fits in [height], capped at [maxWidth].
+  double _widthForHeight(double height, double maxWidth) {
+    double low = 0;
+    double high = maxWidth;
+    for (int i = 0; i < 24; i++) {
+      final double mid = (low + high) / 2;
+      if (_tileHeightFor(mid) <= height) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
+  }
+
+  /// Picks the grid shape that makes the cards as large as possible while
+  /// keeping every one of them on screen - the player never scrolls.
+  ({int columns, double tileWidth}) _bestGrid(double width, double height) {
+    int bestColumns = 1;
+    double bestWidth = 0;
+    for (int columns = 1; columns <= _cardCount; columns++) {
+      final int rows = (_cardCount / columns).ceil();
+      final double tileWidth =
+          (width - _kTileSpacing * (columns - 1)) / columns;
+      final double tileHeight = (height - _kTileSpacing * (rows - 1)) / rows;
+      if (tileWidth <= 0 || tileHeight <= 0) continue;
+      final double fitted =
+          math.min(tileWidth, _widthForHeight(tileHeight, tileWidth));
+      if (fitted > bestWidth) {
+        bestWidth = fitted;
+        bestColumns = columns;
+      }
+    }
+    return (columns: bestColumns, tileWidth: math.max(bestWidth, 1));
   }
 
   Widget _buildBoard() {
     final Set<int> sharedNumbers = _numbersOnMultipleCards();
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        const double spacing = 10;
-        const double padding = 8;
-        final double available = constraints.maxWidth - padding * 2;
-        final int columns = _columnCount(available);
-        final double tileWidth =
-            (available - spacing * (columns - 1)) / columns;
+        final double available = constraints.maxWidth - _kBoardPadding * 2;
+        final double vertical = constraints.maxHeight - _kBoardPadding * 2;
+        final grid = _bestGrid(available, vertical);
+        final int rows = (_cardCount / grid.columns).ceil();
         return Padding(
-          padding: const EdgeInsets.all(padding),
-          child: Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
-            alignment: WrapAlignment.center,
-            children: List<Widget>.generate(_cardCount, (int index) {
-              return SizedBox(
-                width: tileWidth,
-                child: _buildCardTile(index, sharedNumbers),
+          padding: const EdgeInsets.all(_kBoardPadding),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List<Widget>.generate(rows, (int row) {
+              final int first = row * grid.columns;
+              final int last = math.min(first + grid.columns, _cardCount);
+              return Padding(
+                padding: EdgeInsets.only(
+                    bottom: row < rows - 1 ? _kTileSpacing : 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    for (int index = first; index < last; index++) ...[
+                      if (index > first) const SizedBox(width: _kTileSpacing),
+                      _buildCardTile(index, sharedNumbers, grid.tileWidth),
+                    ],
+                  ],
+                ),
               );
             }),
           ),
@@ -278,31 +363,31 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildCardTile(int index, Set<int> sharedNumbers) {
+  Widget _buildCardTile(int index, Set<int> sharedNumbers, double width) {
     final Map<String, dynamic>? cardData = _cards[index];
     final bool isOpen = _isCardOpen[index] && cardData != null;
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final double gap = (constraints.maxWidth * 0.025).clamp(3.0, 10.0);
-        final double cell = (constraints.maxWidth - gap * 6) / 5;
-        return Container(
-          padding: EdgeInsets.all(gap),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 6,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: isOpen
-              ? _buildOpenCard(index, cardData, sharedNumbers, cell, gap)
-              : _buildCardPicker(index, constraints.maxWidth, gap),
-        );
-      },
+    final double gap = _tileGap(width);
+    final double cell = _cellFor(width);
+    return SizedBox(
+      width: width,
+      height: _tileHeightFor(width),
+      child: Container(
+        padding: EdgeInsets.all(gap),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: isOpen
+            ? _buildOpenCard(index, cardData, sharedNumbers, cell, gap)
+            : _buildCardPicker(index, width - gap * 2, gap),
+      ),
     );
   }
 
@@ -316,22 +401,28 @@ class _MyHomePageState extends State<MyHomePage> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List<Widget>.generate(5, (int col) {
-            return SizedBox(
-              width: cell,
-              child: Text(
-                kColumns[col].toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: cell * 0.72,
-                  color: kBrandInk,
+        SizedBox(
+          height: cell * _kHeaderRatio,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List<Widget>.generate(5, (int col) {
+              return SizedBox(
+                width: cell,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    kColumns[col].toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: cell * 0.72,
+                      color: kBrandInk,
+                    ),
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ),
         SizedBox(height: gap),
         for (int row = 0; row < 5; row++) ...[
@@ -344,21 +435,41 @@ class _MyHomePageState extends State<MyHomePage> {
           if (row < 4) SizedBox(height: gap),
         ],
         SizedBox(height: gap),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              child: Text(
-                'No. ${cardData['cardname']}',
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+        SizedBox(
+          height: cell * _kFooterRatio,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'No. ${cardData['cardname']}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: cell * 0.42,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: () => _closeCard(index),
-              child: const Text('Back'),
-            ),
-          ],
+              GestureDetector(
+                onTap: () => _closeCard(index),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Back',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: cell * 0.42,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -391,133 +502,87 @@ class _MyHomePageState extends State<MyHomePage> {
         // glyph, which not every platform font can render.
         child: number == 0
             ? Icon(Icons.star, size: size * 0.52, color: kBrandOrange)
-            : Text(
-                '$number',
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black,
-                  fontSize: size * 0.42,
-                  fontWeight: FontWeight.bold,
+            : FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '$number',
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black,
+                    fontSize: size * 0.42,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
       ),
     );
   }
 
-  Widget _buildCardPicker(int index, double tileWidth, double gap) {
-    final double logoHeight = math.min(84, tileWidth * 0.42);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(kLogoAsset, height: logoHeight, fit: BoxFit.contain),
-        SizedBox(height: gap),
-        Text(
-          _cardCount == 1 ? 'Enter a Number' : 'Card ${index + 1}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        TextField(
-          controller: _controllers[index],
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          onSubmitted: (_) => _openCard(index),
-          style: const TextStyle(color: Colors.black),
-          decoration: const InputDecoration(
-            hintText: 'Cartela number',
-            isDense: true,
-          ),
-        ),
-        if (_lookupFailed[index])
-          Padding(
-            padding: EdgeInsets.only(top: gap),
-            child: const Text(
-              'No card with that number',
+  /// The empty state of a slot. It is scaled down when the tile is too short
+  /// for the logo and the input at their natural size, which keeps the picker
+  /// inside the tile however many cards are on screen.
+  Widget _buildCardPicker(int index, double width, double gap) {
+    final double logoHeight = math.min(84, width * 0.42);
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: SizedBox(
+        width: width,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(kLogoAsset, height: logoHeight, fit: BoxFit.contain),
+            SizedBox(height: gap),
+            Text(
+              'Card ${index + 1}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextField(
+              controller: _controllers[index],
+              keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red, fontSize: 12),
-            ),
-          ),
-        SizedBox(height: gap * 1.5),
-        GestureDetector(
-          onTap: () => _openCard(index),
-          child: Container(
-            width: 100,
-            decoration: BoxDecoration(
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 6,
-                  offset: Offset(0, 3),
-                ),
-              ],
-              borderRadius: BorderRadius.circular(17),
-              color: const Color.fromARGB(255, 255, 98, 0),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text(
-                'Play',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold),
+              onSubmitted: (_) => _openCard(index),
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(
+                hintText: 'Cartela number',
+                isDense: true,
               ),
             ),
-          ),
+            if (_lookupFailed[index])
+              Padding(
+                padding: EdgeInsets.only(top: gap),
+                child: const Text(
+                  'No card with that number',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+            SizedBox(height: gap * 1.5),
+            GestureDetector(
+              onTap: () => _openCard(index),
+              child: Container(
+                width: 100,
+                decoration: BoxDecoration(
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                  borderRadius: BorderRadius.circular(17),
+                  color: const Color.fromARGB(255, 255, 98, 0),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'Play',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildFooter() {
-    return Container(
-      width: double.infinity,
-      color: kBrandOrange,
-      padding: const EdgeInsets.all(10.0),
-      child: Column(
-        children: [
-          Image.asset(kLogoAsset, height: 76, fit: BoxFit.contain),
-          const SizedBox(height: 8),
-          const Text(
-            kAppName,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: kBrandInk,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            children: [
-              Text(kContactPrompt),
-              Text(kManagerName, style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                kContactPhone,
-                style: TextStyle(
-                  color: Color.fromARGB(255, 250, 7, 7),
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.phone, size: 20),
-                onPressed: _launchPhoneCall,
-              ),
-            ],
-          ),
-          const Divider(),
-          const Text(
-            kCopyright,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 23, 22, 22),
-              fontSize: 14.0,
-            ),
-          ),
-        ],
       ),
     );
   }
