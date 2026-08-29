@@ -46,7 +46,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: genius-bingo-apk
+          name: besufikad-bingo-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 90
@@ -56,9 +56,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-build-${{ github.run_number }}
-          name: Genius Bingo APK (build ${{ github.run_number }})
+          name: Besufikad Bingo APK (build ${{ github.run_number }})
           body: |
-            Android release APK for Genius Bingo.
+            Android release APK for Besufikad Bingo.
 
             Install on your phone:
             1. Download `app-release.apk` below

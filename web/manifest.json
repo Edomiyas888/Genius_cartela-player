@@ -1,11 +1,11 @@
 {
-    "name": "Genius Bingo",
-    "short_name": "Genius Bingo",
+    "name": "Besufikad Bingo",
+    "short_name": "Besufikad Bingo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#000000",
     "theme_color": "#F69C12",
-    "description": "Genius Bingo - For Fun In Life",
+    "description": "Besufikad Bingo - For Fun In Life",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
