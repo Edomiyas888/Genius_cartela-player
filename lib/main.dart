@@ -19,6 +19,12 @@ const double _kTileSpacing = 8;
 /// Padding around the whole board.
 const double _kBoardPadding = 8;
 
+/// Card counts that will not fit on screen at a size worth reading. They are
+/// laid out as though only [_kCardsOnScreen] were open, and the rest of the
+/// rows are reached by scrolling.
+const Set<int> _kScrollingCounts = <int>{8, 10};
+const int _kCardsOnScreen = 6;
+
 /// Heights of the header and footer strips of a card, as a multiple of one
 /// cell. They are fixed so a card's height is a pure function of its width and
 /// the board can be sized to fit the screen without measuring anything.
@@ -90,27 +96,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _clearSelectedNumbers() {
     setState(_selectedNumbers.clear);
-  }
-
-  /// Numbers printed on more than one of the currently open cards. Those cells
-  /// get a ring so it is obvious why marking one of them lit up two boards.
-  Set<int> _numbersOnMultipleCards() {
-    final Map<int, int> occurrences = <int, int>{};
-    for (int index = 0; index < _cardCount; index++) {
-      final Map<String, dynamic>? cardData = _cards[index];
-      if (cardData == null || !_isCardOpen[index]) continue;
-      for (final String key in kColumns) {
-        for (final dynamic value in cardData[key] as List<dynamic>) {
-          final int number = value as int;
-          if (number == 0) continue;
-          occurrences[number] = (occurrences[number] ?? 0) + 1;
-        }
-      }
-    }
-    return occurrences.entries
-        .where((MapEntry<int, int> entry) => entry.value > 1)
-        .map((MapEntry<int, int> entry) => entry.key)
-        .toSet();
   }
 
   // ------------------------------------------------------- winning patterns --
@@ -285,15 +270,17 @@ class _MyHomePageState extends State<MyHomePage> {
               onChanged: (int? value) {
                 if (value != null) _setCardCount(value);
               },
-              // Cards are always played in even numbers.
-              items:
-                  List<DropdownMenuItem<int>>.generate(kMaxCards ~/ 2, (int i) {
-                final int count = (i + 1) * 2;
-                return DropdownMenuItem<int>(
-                  value: count,
-                  child: Text('$count cards'),
-                );
-              }),
+              // A single card, then the even counts the game is normally
+              // played in.
+              items: <int>[
+                1,
+                for (int i = 1; i <= kMaxCards ~/ 2; i++) i * 2,
+              ]
+                  .map((int count) => DropdownMenuItem<int>(
+                        value: count,
+                        child: Text(count == 1 ? '1 card' : '$count cards'),
+                      ))
+                  .toList(),
             ),
           ),
         ),
@@ -340,13 +327,19 @@ class _MyHomePageState extends State<MyHomePage> {
     return low;
   }
 
+  /// How many cards the board is sized around. Below this the player sees
+  /// every open card at once; above it they scroll.
+  int get _cardsToFit =>
+      _kScrollingCounts.contains(_cardCount) ? _kCardsOnScreen : _cardCount;
+
   /// Picks the grid shape that makes the cards as large as possible while
-  /// keeping every one of them on screen - the player never scrolls.
-  ({int columns, double tileWidth}) _bestGrid(double width, double height) {
+  /// keeping [count] of them on screen.
+  ({int columns, double tileWidth}) _bestGrid(
+      double width, double height, int count) {
     int bestColumns = 1;
     double bestWidth = 0;
-    for (int columns = 1; columns <= _cardCount; columns++) {
-      final int rows = (_cardCount / columns).ceil();
+    for (int columns = 1; columns <= count; columns++) {
+      final int rows = (count / columns).ceil();
       final double tileWidth =
           (width - _kTileSpacing * (columns - 1)) / columns;
       final double tileHeight = (height - _kTileSpacing * (rows - 1)) / rows;
@@ -362,16 +355,21 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildBoard() {
-    final Set<int> sharedNumbers = _numbersOnMultipleCards();
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double available = constraints.maxWidth - _kBoardPadding * 2;
         final double vertical = constraints.maxHeight - _kBoardPadding * 2;
-        final grid = _bestGrid(available, vertical);
+        final grid = _bestGrid(available, vertical, _cardsToFit);
+        // Every card gets a slot in the same grid; only the rows past the
+        // sixth card fall below the fold.
         final int rows = (_cardCount / grid.columns).ceil();
-        return Padding(
+        final bool scrolls = _cardCount > _cardsToFit;
+        final Widget board = Padding(
           padding: const EdgeInsets.all(_kBoardPadding),
           child: Column(
+            // A scrolling board is unbounded, so it has to shrink-wrap its
+            // rows rather than centre them in a height it does not have.
+            mainAxisSize: scrolls ? MainAxisSize.min : MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: List<Widget>.generate(rows, (int row) {
               final int first = row * grid.columns;
@@ -384,7 +382,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: <Widget>[
                     for (int index = first; index < last; index++) ...[
                       if (index > first) const SizedBox(width: _kTileSpacing),
-                      _buildCardTile(index, sharedNumbers, grid.tileWidth),
+                      _buildCardTile(index, grid.tileWidth),
                     ],
                   ],
                 ),
@@ -392,11 +390,12 @@ class _MyHomePageState extends State<MyHomePage> {
             }),
           ),
         );
+        return scrolls ? SingleChildScrollView(child: board) : board;
       },
     );
   }
 
-  Widget _buildCardTile(int index, Set<int> sharedNumbers, double width) {
+  Widget _buildCardTile(int index, double width) {
     final Map<String, dynamic>? cardData = _cards[index];
     final bool isOpen = _isCardOpen[index] && cardData != null;
     final double gap = _tileGap(width);
@@ -418,7 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
         child: isOpen
-            ? _buildOpenCard(index, cardData, sharedNumbers, cell, gap)
+            ? _buildOpenCard(index, cardData, cell, gap)
             : _buildCardPicker(index, width - gap * 2, gap),
       ),
     );
@@ -427,7 +426,6 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildOpenCard(
     int index,
     Map<String, dynamic> cardData,
-    Set<int> sharedNumbers,
     double cell,
     double gap,
   ) {
@@ -462,7 +460,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List<Widget>.generate(5, (int col) {
-              return _buildCell(cardData, row, col, cell, sharedNumbers);
+              return _buildCell(cardData, row, col, cell);
             }),
           ),
           if (row < 4) SizedBox(height: gap),
@@ -513,11 +511,9 @@ class _MyHomePageState extends State<MyHomePage> {
     int row,
     int col,
     double size,
-    Set<int> sharedNumbers,
   ) {
     final int number = _numberAt(cardData, row, col);
     final bool isSelected = _isNumberSelected(number);
-    final bool isShared = sharedNumbers.contains(number);
     final Color fill = _cellColor(cardData, row, col, number);
     final bool hasWon = fill == kCellWinning;
     // Gold is far too light to carry the white a marked cell uses.
@@ -533,9 +529,6 @@ class _MyHomePageState extends State<MyHomePage> {
         decoration: BoxDecoration(
           color: fill,
           shape: BoxShape.circle,
-          border: isShared
-              ? Border.all(color: kBrandOrange, width: size * 0.08)
-              : null,
         ),
         // The free space uses a bundled Material icon rather than a star
         // glyph, which not every platform font can render.
