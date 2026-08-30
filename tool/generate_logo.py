@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Generate the Besufikad Bingo logo and every icon it feeds.
+"""Generate the Besufikad Bingo launcher icons.
+
+NOTE: the in-app logo (assets/images/logo.png) and app-bar mark
+(assets/images/app_icon.png) are no longer drawn here - they are cut from the
+Waliya ibex artwork in assets/images/waliya_pair.png. Re-running this script
+will overwrite them with the drawn mark below, so restore those two files from
+git afterwards if you only meant to refresh the launcher icons.
 
 The artwork is a Waliya (walia ibex) in front of a rainbow, with a cartela and
 bingo balls at its feet. It is drawn as an SVG and rasterised into the in-app
