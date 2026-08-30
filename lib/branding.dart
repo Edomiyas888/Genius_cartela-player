@@ -27,7 +27,8 @@ const Color kBrandOrange = Color(0xFFF69C12);
 const Color kBrandInk = Color(0xFF0E1030);
 const Color kBrandGold = Color(0xFFF6C55F);
 
-/// Cell states on a card.
+/// Cell states on a card. A cell goes gold once it is part of a completed
+/// pattern - a row, a column, a diagonal or the four corners.
 const Color kCellIdle = Color(0xFFCBCBCB);
 const Color kCellMarked = Color(0xFF00A2FF);
-const Color kCellWinning = Color(0xFF4CAF50);
+const Color kCellWinning = kBrandGold;

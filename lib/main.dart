@@ -113,29 +113,62 @@ class _MyHomePageState extends State<MyHomePage> {
         .toSet();
   }
 
-  // ----------------------------------------------------------- line checks --
+  // ------------------------------------------------------- winning patterns --
 
-  bool _isRowComplete(Map<String, dynamic> cardData, int row) {
-    for (final String key in kColumns) {
-      if (!_isNumberSelected(cardData[key][row] as int)) return false;
+  /// The number printed at [row], [col]. Columns are stored letter by letter,
+  /// so the board's (row, column) has to be read the other way round.
+  int _numberAt(Map<String, dynamic> cardData, int row, int col) =>
+      cardData[kColumns[col]][row] as int;
+
+  /// Whether every cell of [cells] - each an (row, col) pair - is marked.
+  bool _isPatternComplete(
+    Map<String, dynamic> cardData,
+    List<List<int>> cells,
+  ) {
+    for (final List<int> cell in cells) {
+      if (!_isNumberSelected(_numberAt(cardData, cell[0], cell[1]))) {
+        return false;
+      }
     }
     return true;
   }
 
-  bool _isColComplete(Map<String, dynamic> cardData, int col) {
-    final List<dynamic> column = cardData[kColumns[col]] as List<dynamic>;
-    for (int row = 0; row < 5; row++) {
-      if (!_isNumberSelected(column[row] as int)) return false;
+  /// The winning patterns that pass through [row], [col]: its row, its column,
+  /// whichever diagonals it lies on, and the four corners if it is one. A cell
+  /// only has to belong to one completed pattern to go gold.
+  List<List<List<int>>> _patternsThrough(int row, int col) {
+    final List<List<List<int>>> patterns = <List<List<int>>>[
+      <List<int>>[for (int c = 0; c < 5; c++) <int>[row, c]],
+      <List<int>>[for (int r = 0; r < 5; r++) <int>[r, col]],
+    ];
+    if (row == col) {
+      patterns.add(<List<int>>[for (int i = 0; i < 5; i++) <int>[i, i]]);
     }
-    return true;
+    if (row + col == 4) {
+      patterns.add(<List<int>>[for (int i = 0; i < 5; i++) <int>[i, 4 - i]]);
+    }
+    if ((row == 0 || row == 4) && (col == 0 || col == 4)) {
+      patterns.add(const <List<int>>[
+        <int>[0, 0],
+        <int>[0, 4],
+        <int>[4, 0],
+        <int>[4, 4],
+      ]);
+    }
+    return patterns;
   }
 
-  bool _isCellInFullLine(Map<String, dynamic> cardData, int row, int col) =>
-      _isRowComplete(cardData, row) || _isColComplete(cardData, col);
+  bool _isCellInWinningPattern(
+      Map<String, dynamic> cardData, int row, int col) {
+    for (final List<List<int>> pattern in _patternsThrough(row, col)) {
+      if (_isPatternComplete(cardData, pattern)) return true;
+    }
+    return false;
+  }
 
   Color _cellColor(
       Map<String, dynamic> cardData, int row, int col, int number) {
-    if (_isCellInFullLine(cardData, row, col)) return kCellWinning;
+    if (_isCellInWinningPattern(cardData, row, col)) return kCellWinning;
     if (_isNumberSelected(number)) return kCellMarked;
     return kCellIdle;
   }
@@ -482,9 +515,15 @@ class _MyHomePageState extends State<MyHomePage> {
     double size,
     Set<int> sharedNumbers,
   ) {
-    final int number = cardData[kColumns[col]][row] as int;
+    final int number = _numberAt(cardData, row, col);
     final bool isSelected = _isNumberSelected(number);
     final bool isShared = sharedNumbers.contains(number);
+    final Color fill = _cellColor(cardData, row, col, number);
+    final bool hasWon = fill == kCellWinning;
+    // Gold is far too light to carry the white a marked cell uses.
+    final Color ink = hasWon
+        ? kBrandInk
+        : (isSelected ? Colors.white : Colors.black);
     return GestureDetector(
       onTap: () => _toggleNumber(number),
       child: Container(
@@ -492,7 +531,7 @@ class _MyHomePageState extends State<MyHomePage> {
         height: size,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: _cellColor(cardData, row, col, number),
+          color: fill,
           shape: BoxShape.circle,
           border: isShared
               ? Border.all(color: kBrandOrange, width: size * 0.08)
@@ -501,13 +540,14 @@ class _MyHomePageState extends State<MyHomePage> {
         // The free space uses a bundled Material icon rather than a star
         // glyph, which not every platform font can render.
         child: number == 0
-            ? Icon(Icons.star, size: size * 0.52, color: kBrandOrange)
+            ? Icon(Icons.star,
+                size: size * 0.52, color: hasWon ? kBrandInk : kBrandOrange)
             : FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   '$number',
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
+                    color: ink,
                     fontSize: size * 0.42,
                     fontWeight: FontWeight.bold,
                   ),
