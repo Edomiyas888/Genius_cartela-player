@@ -54,9 +54,16 @@ WORDMARK_FONTS = (
 
 # Layout, in final (1024 px) coordinates. The icon has no wordmark or balls to
 # make room for, so its medallion grows and the group re-centres in the square.
-HALO_BAND = 15
-FULL = {"centre": (512, 420), "medallion": 270, "halo": 384}
-ICON = {"centre": (512, 572), "medallion": 300, "halo": 420}
+# The maskable is the icon at 0.68 about the centre, run edge to edge, which
+# keeps the mark inside the circle Android crops a maskable icon to.
+LAYOUTS = {
+    "full": {"centre": (512, 420), "medallion": 270, "halo": 384, "band": 15,
+             "corner": 140, "wordmark": True},
+    "icon": {"centre": (512, 572), "medallion": 300, "halo": 420, "band": 15,
+             "corner": 140, "wordmark": False},
+    "maskable": {"centre": (512, 553), "medallion": 204, "halo": 286, "band": 10,
+                 "corner": 0, "wordmark": False},
+}
 BALL_Y = 742
 BALLS = [(300, 64, RAINBOW[0], "7"), (724, 64, RAINBOW[4], "21")]
 CENTRE_BALL = (512, 70, RAINBOW[2], "42")
@@ -91,10 +98,11 @@ def rounded_mask(size, radius):
 def halo(draw, s, geometry):
     """The rainbow arcing over the medallion."""
     cx, cy = geometry["centre"]
+    band = geometry["band"]
     for index, colour in enumerate(RAINBOW):
-        mid = geometry["halo"] - index * HALO_BAND - HALO_BAND / 2
+        mid = geometry["halo"] - index * band - band / 2
         box = [(cx - mid) * s, (cy - mid) * s, (cx + mid) * s, (cy + mid) * s]
-        draw.arc(box, 180, 360, fill=colour, width=round(HALO_BAND * s))
+        draw.arc(box, 180, 360, fill=colour, width=round(band * s))
 
 
 def medallion(canvas, s, geometry):
@@ -122,7 +130,8 @@ def medallion(canvas, s, geometry):
     canvas.paste(art, (round((cx - outer_r) * s), round((cy - outer_r) * s)), mask)
 
     draw = ImageDraw.Draw(canvas)
-    for inset, colour, width in ((0, GOLD, 9), (10, GOLD_LIGHT, 3)):
+    ring = outer_r / 270
+    for inset, colour, width in ((0, GOLD, 9 * ring), (10 * ring, GOLD_LIGHT, 3 * ring)):
         r = outer_r - inset
         draw.ellipse(
             [(cx - r) * s, (cy - r) * s, (cx + r) * s, (cy + r) * s],
@@ -204,19 +213,19 @@ def wordmark(canvas, s):
     canvas.paste(gradient, (0, 0), mask)
 
 
-def build(with_wordmark):
+def build(kind):
+    geometry = LAYOUTS[kind]
     s = SS
     size = SIZE * s
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     field = Image.new("RGB", (size, size))
     badge(ImageDraw.Draw(field), size)
-    canvas.paste(field, (0, 0), rounded_mask(size, round(140 * s)))
+    canvas.paste(field, (0, 0), rounded_mask(size, round(geometry["corner"] * s)))
 
-    geometry = FULL if with_wordmark else ICON
     halo(ImageDraw.Draw(canvas), s, geometry)
     medallion(canvas, s, geometry)
 
-    if with_wordmark:
+    if geometry["wordmark"]:
         for cx, radius, colour, label in BALLS:
             ball(canvas, s, cx, BALL_Y, radius, colour, label)
         cx, radius, colour, label = CENTRE_BALL
@@ -227,8 +236,8 @@ def build(with_wordmark):
 
 
 def main():
-    build(with_wordmark=True).save(os.path.join(IMAGES, "logo.png"))
-    build(with_wordmark=False).save(os.path.join(IMAGES, "app_icon.png"))
+    build("full").save(os.path.join(IMAGES, "logo.png"))
+    build("icon").save(os.path.join(IMAGES, "app_icon.png"))
     print("Composed logo.png and app_icon.png.")
 
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the Besufikad Bingo launcher icons.
+"""Draw the retired vector Besufikad Bingo mark.
 
-NOTE: the in-app logo (assets/images/logo.png) and app-bar mark
-(assets/images/app_icon.png) are no longer drawn here - tool/compose_logo.py
-builds them around the Waliya ibex artwork instead. Re-running this script will
-overwrite them with the drawn mark below, so re-run compose_logo.py afterwards
-if you only meant to refresh the launcher icons.
+SUPERSEDED. Nothing the app ships comes from here any more: tool/compose_logo.py
+builds the logo and app-bar mark around the Waliya ibex artwork, and
+tool/render_icons.py fans those out to the Android, iOS and web icon slots.
+Running this script overwrites every one of those files with the drawn mark
+below; re-run compose_logo.py and render_icons.py to undo it. It is kept only
+because assets/branding/*.svg are generated from it.
 
 The artwork is a Waliya (walia ibex) in front of a rainbow, with a cartela and
 bingo balls at its feet. It is drawn as an SVG and rasterised into the in-app
