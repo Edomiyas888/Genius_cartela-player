@@ -10,12 +10,14 @@ const String kContactPhone = '0929252131';
 const String kContactPhoneDial = '+251929252131';
 const String kCopyright = 'Developed by Habeshagaming.com @Copyright 2024';
 
-/// The full logo - the pair of Waliya ibex, letterboxed onto a square canvas so
-/// the horns survive a BoxFit.contain. Cut from assets/images/waliya_pair.png.
+/// The full logo - the pair of Waliya ibex in a gold medallion, under a
+/// rainbow, over the bingo balls and the BINGO wordmark. Composed by
+/// tool/compose_logo.py from assets/images/waliya_pair.png; use it where it
+/// renders large enough to read the lettering.
 const String kLogoAsset = 'assets/images/logo.png';
 
-/// The same artwork square-cropped to the animals, for small placements like
-/// the app bar where the letterboxing would waste most of the box.
+/// The same medallion and rainbow without the balls or lettering, for small
+/// placements like the app bar where those would only turn to mush.
 const String kLogoMarkAsset = 'assets/images/app_icon.png';
 
 /// Highest number of cards a single player may track at once.
